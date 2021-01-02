@@ -22,46 +22,53 @@ YELLOW = (255, 255, 0)
 BLACK = (0, 0, 0)
 
 
+# initializes the board by filling it with zeros
 def create_board():
     board = np.zeros((ROW_COUNT, COLUMN_COUNT))
     return board
 
 
+# checks if you can place a piece there
 def is_valid_location(board, col):
     return board[ROW_COUNT - 1][col] == 0
 
 
+# place a piece in a specified location
 def place_piece(board, row, col, piece):
     board[row][col] = piece
 
 
+# returns the first available row
 def get_free_row(board, col):
     for r in range(ROW_COUNT):
         if board[r][col] == 0:
             return r
 
 
+# checks if, after a move, a player has won
 def winning_move(board, piece):
-    # orizontal
+    # horizontally
     for c in range(COLUMN_COUNT - 3):
         for r in range(ROW_COUNT):
             if board[r][c] == piece and board[r][c + 1] == piece and board[r][c + 2] == piece and board[r][
                 c + 3] == piece:
                 return True
-    # vertical
+
+    # vertically
     for c in range(COLUMN_COUNT):
         for r in range(ROW_COUNT - 3):
             if board[r][c] == piece and board[r + 1][c] == piece and board[r + 2][c] == piece and board[r + 3][
                 c] == piece:
                 return True
-    # diagonala "/////"
+
+    # diagonal "/////"
     for c in range(COLUMN_COUNT - 3):
         for r in range(ROW_COUNT - 3):
             if board[r][c] == piece and board[r + 1][c + 1] == piece and board[r + 2][c + 2] == piece and board[r + 3][
                 c + 3] == piece:
                 return True
 
-    # diagonala "\\\\\"
+    # diagonal "\\\\\"
     for c in range(COLUMN_COUNT - 3):
         for r in range(3, ROW_COUNT):
             if board[r][c] == piece and board[r - 1][c + 1] == piece and board[r - 2][c + 2] == piece and board[r - 3][
@@ -77,6 +84,7 @@ screen = pygame.display.set_mode(size)
 RADIUS = int(SQUARESIZE / 2 - 5)
 
 
+# function to evaluate how many points each row gives
 def eval(connected_line, piece):
     score = 0
     opp_piece = PLAYER_PIECE
@@ -96,6 +104,7 @@ def eval(connected_line, piece):
     return score
 
 
+# function to calculate score
 def calculate_score(board, piece):
     score = 0
 
@@ -113,12 +122,13 @@ def calculate_score(board, piece):
             connected_line = col_array[r:r + 4]
             score += eval(connected_line, piece)
 
-    # Score positive sloped diagonal
+    # Score diagonal "/////"
     for r in range(ROW_COUNT - 3):
         for c in range(COLUMN_COUNT - 3):
             connected_line = [board[r + i][c + i] for i in range(4)]
             score += eval(connected_line, piece)
 
+    # Score diagonal "\\\\\"
     for r in range(ROW_COUNT - 3):
         for c in range(COLUMN_COUNT - 3):
             connected_line = [board[r + 3 - i][c + i] for i in range(4)]
@@ -127,11 +137,13 @@ def calculate_score(board, piece):
     return score
 
 
+# checks if a board is in the final state
 def is_final_state(board):
     return winning_move(board, PLAYER_PIECE) or winning_move(board, AI_PIECE) or len(get_valid_locations(board)) == 0
 
 
-def minmax(board, level, alpha, beta, is_maximizing):
+# the minmax algorithm with alpha-beta prunning
+def minmax(board, level, alpha, beta, is_maximizing_level):
     valid_locations = get_valid_locations(board)
     is_final = is_final_state(board)
     if level == 0 or is_final:
@@ -140,11 +152,12 @@ def minmax(board, level, alpha, beta, is_maximizing):
                 return None, 100000000000000
             elif winning_move(board, PLAYER_PIECE):
                 return None, -10000000000000
-            else:  # Game is over, no more valid moves
+            else:  # game is over, no more valid moves
                 return None, 0
         else:  # level is zero
             return None, calculate_score(board, AI_PIECE)
-    if is_maximizing:
+
+    if is_maximizing_level:
         value = -math.inf
         best_col = random.choice(valid_locations)
         for col in valid_locations:
@@ -160,7 +173,7 @@ def minmax(board, level, alpha, beta, is_maximizing):
                 break
         return best_col, value
 
-    else:  # Minimizing player
+    else:  # Minimizing level
         value = math.inf
         best_col = random.choice(valid_locations)
         for col in valid_locations:
@@ -177,6 +190,7 @@ def minmax(board, level, alpha, beta, is_maximizing):
         return best_col, value
 
 
+# returns all valid locations
 def get_valid_locations(board):
     valid_locations = []
     for col in range(COLUMN_COUNT):
@@ -185,22 +199,7 @@ def get_valid_locations(board):
     return valid_locations
 
 
-def pick_best_move(board, piece):
-    valid_locations = get_valid_locations(board)
-    best = -10000
-    best_col = 1
-    for col in valid_locations:
-        row = get_free_row(board, col)
-        temp_board = board.copy()
-        place_piece(temp_board, row, col, piece)
-        score = calculate_score(temp_board, piece)
-        if score > best:
-            best = score
-            best_col = col
-
-    return best_col
-
-
+# draws the board
 def draw_board(board):
     # for empty spaces
     for c in range(COLUMN_COUNT):
@@ -214,12 +213,13 @@ def draw_board(board):
         for r in range(ROW_COUNT):
             if board[r][c] == PLAYER_PIECE:
                 pygame.draw.circle(screen, RED, (
-                int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
+                    int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
             elif board[r][c] == PLAYER2_PIECE:
                 pygame.draw.circle(screen, YELLOW, (
-                int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
+                    int(c * SQUARESIZE + SQUARESIZE / 2), height - int(r * SQUARESIZE + SQUARESIZE / 2)), RADIUS)
     pygame.display.update()
 
 
+# printing the board(in console)
 def print_board(board):
     print(np.flip(board, 0))
